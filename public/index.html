@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تيك توك بروفايل</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+  .container {
+    background: white;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    max-width: 450px;
+    width: 100%;
+    margin-top: 30px;
+  }
+  h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 25px;
+    font-size: 24px;
+  }
+  input {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #ddd;
+    border-radius: 12px;
+    font-size: 16px;
+    margin-bottom: 15px;
+    text-align: center;
+  }
+  button.main-btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-bottom: 20px;
+  }
+  .result { display: none; text-align: center; }
+  .profile-pic {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 5px solid #667eea;
+    margin: 15px auto;
+    display: block;
+    cursor: pointer;
+  }
+  .username-box {
+    background: #f0f0f0;
+    padding: 15px;
+    border-radius: 10px;
+    margin: 15px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .username-text {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    flex: 1;
+  }
+  .copy-btn, .download-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 5px;
+  }
+  .copy-btn { background: #28a745; color: white; }
+  .download-btn { background: #007bff; color: white; }
+  .error { color: #dc3545; text-align: center; margin: 15px 0; display: none; }
+  .loading { text-align: center; margin: 20px 0; display: none; }
+  .info-row {
+    display: flex;
+    justify-content: space-around;
+    margin: 15px 0;
+    flex-wrap: wrap;
+  }
+  .info-item {
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin: 5px;
+    text-align: center;
+  }
+  .info-label { font-size: 12px; color: #666; }
+  .info-value { font-size: 16px; font-weight: bold; color: #333; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1> تيك توك بروفايل</h1>
+  <input type="text" id="usernameInput" placeholder="ادخل اليوزرنيم (بدون @)">
+  <button class="main-btn" onclick="fetchProfile()">🔍 جلب البيانات</button>
+  
+  <div class="loading" id="loading">⏳ جاري التحميل...</div>
+  <div class="error" id="error"></div>
+  
+  <div class="result" id="result">
+    <img id="profilePic" class="profile-pic" src="" alt="Profile" onclick="downloadImage()">
+    <button class="download-btn" onclick="downloadImage()"> تحميل الصورة</button>
+    
+    <div class="username-box">
+      <span class="username-text" id="usernameText"></span>
+      <button class="copy-btn" onclick="copyUsername()"> نسخ</button>
+    </div>
+    
+    <div class="username-box">
+      <span class="username-text" id="nicknameText"></span>
+      <button class="copy-btn" onclick="copyNickname()">📋 نسخ</button>
+    </div>
+    
+    <div class="info-row">
+      <div class="info-item">
+        <div class="info-label">المتابعين</div>
+        <div class="info-value" id="followers">-</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">المتابَعين</div>
+        <div class="info-value" id="following">-</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">اللايكات</div>
+        <div class="info-value" id="likes">-</div>
+      </div>
+    </div>
+    
+    <div class="info-item" style="width:100%; margin-top:10px;">
+      <div class="info-label">البايو</div>
+      <div class="info-value" id="bio" style="font-size:14px; font-weight:normal;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ⚠️ غير اللينك ده للينك Vercel بتاعك بعد الـ deploy
+const API_URL = 'https://YOUR-PROJECT.vercel.app/api/profile';
+
+async function fetchProfile() {
+  let username = document.getElementById('usernameInput').value.trim();
+  username = username.replace('@', '');
+  
+  if (!username) {
+    showError('ادخل يوزرنيم الأول!');
+    return;
+  }
+  
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('error').style.display = 'none';
+  
+  try {
+    const response = await fetch(`${API_URL}?username=${username}`);
+    const data = await response.json();
+    
+    if (data.error) {
+      showError(data.error);
+      return;
+    }
+    
+    document.getElementById('profilePic').src = data.avatarLarger || data.avatarMedium || data.avatarThumb;
+    document.getElementById('usernameText').textContent = '@' + data.username;
+    document.getElementById('nicknameText').textContent = data.nickname;
+    document.getElementById('followers').textContent = formatNumber(data.followers);
+    document.getElementById('following').textContent = formatNumber(data.following);
+    document.getElementById('likes').textContent = formatNumber(data.likes);
+    document.getElementById('bio').textContent = data.signature || 'لا يوجد';
+    
+    document.getElementById('result').style.display = 'block';
+  } catch (err) {
+    showError('حدث خطأ: ' + err.message);
+  } finally {
+    document.getElementById('loading').style.display = 'none';
+  }
+}
+
+function formatNumber(num) {
+  if (!num) return '0';
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  return num.toString();
+}
+
+function copyUsername() {
+  const text = document.getElementById('usernameText').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    alert('✅ تم نسخ اليوزرنيم: ' + text);
+  });
+}
+
+function copyNickname() {
+  const text = document.getElementById('nicknameText').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    alert('✅ تم نسخ النيك نيم: ' + text);
+  });
+}
+
+function downloadImage() {
+  const img = document.getElementById('profilePic');
+  const link = document.createElement('a');
+  link.href = img.src;
+  link.download = 'profile.jpg';
+  link.target = '_blank';
+  link.click();
+}
+
+function showError(msg) {
+  document.getElementById('error').textContent = '❌ ' + msg;
+  document.getElementById('error').style.display = 'block';
+}
+</script>
+</body>
+</html>
